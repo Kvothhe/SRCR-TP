@@ -165,3 +165,119 @@ obtem_melhor([_|Caminhos], MelhorCaminho) :-
 
 expande_aestrela(Caminho, ExpCaminhos, Goal) :-
     findall(NovoCaminho, adjacente(Caminho, NovoCaminho, Goal), ExpCaminhos).
+
+
+%--------------------------------- Numero de Lixos
+
+%------------ dfs
+
+getNumLixo(Nodo, Lixo, R):-
+   pontoRecolha(_,_,_,_,Nodo,_,L1),
+   getNumLixoAux(L1, Lixo,R).
+
+list_sum([Item], Item).
+list_sum([Item1,Item2 | Tail], Total) :-
+    list_sum([Item1+Item2|Tail], Total).
+
+getNumLixoAux([], Lixo,0).
+getNumLixoAux([(Name,V)|Rest], Lixo,Num) :-
+  getNumLixoAux(Rest, Lixo,Num1),
+  (Name = Lixo -> Num is Num1 + 1; Num is Num1).
+
+dfs_TL(Nodo, Destino, TipoLixo, [Nodo|Caminho]/Number):-
+    getNumLixo(Nodo,Lixo,Acc),
+    dfsr_TL(Nodo, Destino, TipoLixo, [Nodo], Caminho/Acc/Number).
+
+dfsr_TL(Nodo, Destino, TipoLixo, _, [Destino]/Acc/Number):-
+    adjacente(Nodo, Destino),
+    getNumLixo(Destino,TipoLixo,Num),
+    Number is Num + Acc.
+
+dfsr_TL(Nodo, Destino, TipoLixo, Visited, [ProxNodo|Caminho]/Acc/Number):-
+    adjacente(Nodo, ProxNodo),
+    \+ member(ProxNodo, Visited),
+    getNumLixo(Destino,TipoLixo,Num),
+    NewAcc is Acc + Num,
+    dfs_TL(ProxNodo, Destino, TipoLixo, [Nodo|Visited], Caminho/NewAcc/Number).
+
+%------------ bfs
+
+resolve_bfs_lixo(Start, End, Lixos, Solution) :-
+  bfs_loja([[Start]], End, Lixos, Solution).
+
+
+bfs_lixo([[Node|Path]|_], End, Lixos, Result) :-
+  Node == End, ! , inverso([Node|Path], Result).
+
+bfs_lixo([Path|Paths], End, Lixos, Solution) :-
+  extend_loja(Path, NewPaths, Lixos),
+  append(Paths, NewPaths, Paths1),
+  bfs_lixo(Paths1, End, Lixos, Solution).
+
+extend_lixo([Node|Path], NewPaths, Lixos) :-
+  findall([NewNode, Node|Path],
+          (adjacente_Lixo(Node, NewNode, Lixos),
+           \+ member(NewNode,[Node|Path]) ),
+          NewPaths),!.
+
+extend_lixo(Path, [], Lixos).
+
+%------------ gulosa
+
+greedyTP(Nodo, Destino,TipoLixo, Caminho/LixoR):-
+    estimaTP(Nodo,Destino, TipoLixo,E),
+    estimaTP(Nodo,TipoLixo,V),
+    agreedyTP([[Nodo]/V/E], TipoLixo,InvCaminho/LixoR/_, Destino),
+    inverso(InvCaminho,Caminho).
+
+agreedyTP(Caminhos, TipoLixo,Caminho, Destino):-
+    get_best_gTP(Caminhos,Caminho),
+    Caminho = [Nodo|_]/_/_,
+    Nodo == Destino.
+
+agreedyTP(Caminhos, TipoLixo,SolucaoCaminho, Destino):-
+    get_best_gTP(Caminhos, MelhorCaminho),
+    seleciona(MelhorCaminho,Caminhos,OutrosCaminhos),
+    expand_greedyTP(MelhorCaminho,TipoLixo,ExpCaminhos, Destino),
+    append(OutrosCaminhos,ExpCaminhos,NovoCaminhos),
+    agreedyTP(NovoCaminhos,TipoLixo,SolucaoCaminho, Destino).
+
+get_best_gTP([Caminho],Caminho):- !.
+
+get_best_gTP([Caminho1/Custo1/Est1,_/_/Est2|Caminhos], MelhorCaminho):-
+    Est1 =< Est2,
+    !,
+    get_best_gTP([Caminho1/Custo1/Est1|Caminhos],MelhorCaminho).
+
+get_best_gTP([_|Caminhos], MelhorCaminho):-
+    get_best_gTP(Caminhos, MelhorCaminho).
+
+expand_greedyTP(Caminho, TipoLixo ,ExpCaminhos, Destino):-
+    findall(NovoCaminho, adjacenteTP(Caminho, NovoCaminho, Destino), ExpCaminhos).
+
+adjacenteTP([Nodo|Caminho]/Custo/_, [ProxNodo,Nodo|Caminho]/NovoCusto/Est, Destino):-
+    aresta(Nodo, ProxNodo),
+    estimaTP(ProxNodo, TipoLixo,PassoCusto),
+    \+ member(ProxNodo, Caminho),
+    NovoCusto is Custo + PassoCusto,
+    estimaTP(ProxNodo, TipoLixo,Destino, Est).
+
+estimaTP(P1,TipoLixo,R):-
+        pontoRecolha(_,_,_,_,P1,_,L1),
+        getLixoTP(L1,R).
+
+estimaTP(P1,P2,TipoLixo,R):-
+        pontoRecolha(_,_,_,_,P1,_,L1),
+        pontoRecolha(_,_,_,_,P2,_,L2),
+        append(L1,L2,Lr),
+        getLixoTP(Lr,R).
+
+getLixoTP([(_, V)],TipoLixo,V).
+getLixoTP([L1,L2|Tail],TipoLixo,R):- 
+   isLixo(L1,TipoLixo) -> ((isLixo(L2,TipoLixo) -> (getLixoV(L1,V1),getLixoV(L2,V2),RR is V1 + V2, getLixo([(_, RR)|Tail],TipoLixo,R) ;
+                                                    getLixoTP(L1|Tail,TipoLixo,R)))
+                           ;getLixoTP(L2|Tail,TipoLixo,R)).
+
+isLixo((T,_),TipoLixo) :- T == TipoLixo.
+
+getLixoV((_,V),Z) :- Z is V. 
