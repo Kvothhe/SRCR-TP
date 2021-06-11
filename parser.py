@@ -24,12 +24,12 @@ def writeAdj(f,key,ruasIDID):
 	if key in ruasIDID:
 		if len(ruasIDID[key]) > 1:
 			idAdj1 = int(ruasIDID[key][0])
-			f.write('aresta('+key+','+str(idAdj1)+'),\n')
+			f.write('aresta('+key+','+str(idAdj1)+').\n')
 			idAdj2 = int(ruasIDID[key][1])
-			f.write('aresta('+key+','+str(idAdj2)+'),\n')
+			f.write('aresta('+key+','+str(idAdj2)+').\n')
 		else:
 			idAdj1 = int(ruasIDID[key][0])
-			f.write('aresta('+key+','+str(idAdj1)+'),\n')
+			f.write('aresta('+key+','+str(idAdj1)+').\n')
 
 def writeGrafo(lixosID,ruasIDID):
 	f = open("grafo.pl", "w")
@@ -38,21 +38,21 @@ def writeGrafo(lixosID,ruasIDID):
 	lista = list(lixosID.keys())
 	for i in range(0, len(lista)):
 		lista[i] = int(lista[i])
-	f.write(str(lista)+ ',\n[')
+	f.write(str(lista)+ ')).\n')
 
 	lastKey = list(lixosID.keys())[0]
 	lastOne = list(lixosID.keys())[-1]
-	writeAdj(f,lastKey,ruasIDID)
+	#writeAdj(f,lastKey,ruasIDID)
 	for key in lixosID:
 		if lastKey == key:
 			pass
 		else:
 			if lastOne == key:
-				writeAdj(f,key,ruasIDID)
-				f.write('aresta('+lastKey+','+key+')])).\n')
+				#writeAdj(f,key,ruasIDID)
+				f.write('aresta('+lastKey+','+key+').\n')
 			else:
-				f.write('aresta('+lastKey+','+key+'),\n')
-				writeAdj(f,key,ruasIDID)
+				f.write('aresta('+lastKey+','+key+').\n')
+				#writeAdj(f,key,ruasIDID)
 				lastKey = key 
 
 
